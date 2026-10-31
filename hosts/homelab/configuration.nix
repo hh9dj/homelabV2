@@ -5,25 +5,69 @@
     ./hardware-configuration.nix
   ];
 
-  nix.settings.experimental-features = [
-    "flakes"
-    "nix-command"
-  ];
-
-  nixpkgs.config.allowUnfree = true;
-
-  boot.loader = {
-    efi.canTouchEfiVariables = true;
-    systemd-boot.enable = true;
+  nix = {
+    settings = {
+      experimental-features = [
+        "flakes"
+        "nix-command"
+      ];
+      # Allow these users to receive unsigned store paths from remote builds
+      # (nixos-rebuild --target-host, nix copy). Root-equivalent: fine for a
+      # single-user server.
+      trusted-users = [
+        "root"
+        "khalil"
+      ];
+    };
+    optimise.automatic = true;
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 14d";
+    };
   };
 
-  boot.kernel.sysctl = {
-    "vm.swappiness" = 10;
+  boot = {
+    blacklistedKernelModules = [ "cfg80211" ];
+    kernel = {
+      sysctl = {
+        "vm.swappiness" = 10;
+      };
+    };
+    loader = {
+      efi = {
+        canTouchEfiVariables = true;
+      };
+      systemd-boot = {
+        configurationLimit = 10;
+        enable = true;
+      };
+    };
   };
+
+  services = {
+    fstrim = {
+      enable = true;
+    };
+    openssh = {
+      enable = true;
+      settings = {
+        KbdInteractiveAuthentication = false;
+        PasswordAuthentication = false;
+        PermitRootLogin = "no";
+      };
+    };
+    tailscale = {
+      enable = true;
+    };
+  };
+
+  zramSwap.enable = true;
 
   networking = {
     hostName = "homelab";
-    networkmanager.enable = true;
+    # Without NetworkManager, the default DHCP client configures Ethernet.
+    networkmanager.enable = false;
   };
 
   time.timeZone = "Europe/Paris";
@@ -36,26 +80,9 @@
     ];
   };
 
-  services.openssh = {
-    enable = true;
-    settings = {
-      PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
-      PermitRootLogin = "no";
-    };
-  };
-
-  services.tailscale.enable = true;
-
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-  };
-
   system.autoUpgrade = {
     enable = true;
-    flake = "github:hh9dj/homelab#homelab";
+    flake = "github:hh9dj/homelabV2#homelab";
   };
 
   environment.systemPackages = with pkgs; [

@@ -2,11 +2,13 @@
 
 NixOS server config (flakes + disko). Host: `homelab`.
 
-Purpose: hosting data pipelines, APIs, scraping scripts, and AI agents.
+Channel: stable `nixos-26.05`. disko is pinned to tag `v1.13.0`.
+Wi-Fi is disabled. The server uses Ethernet only.
 
 ## Layout
 
-- `flake.nix`: `nixosConfigurations.homelab` and `diskoConfigurations.homelab`
+- `flake.nix`: `nixosConfigurations.homelab`, `diskoConfigurations.homelab`, and a dev shell (via `flake-utils`)
+- `justfile`: helper commands (`just --list`): `update`, `update-input`, `check`, `fmt`, `switch`, `deploy`
 - `hosts/homelab/configuration.nix`: base system, SSH, Tailscale, auto-upgrade
 - `hosts/homelab/hardware-configuration.nix`: portable hardware defaults
 - `hosts/homelab/disko.nix`: disk layout
@@ -31,7 +33,7 @@ below reference the flake; a local path works too (see the note at the end).
    sudo -i
    ```
 
-2. Get network access. Ethernet usually works out of the box. For Wi-Fi:
+2. Get network access. Ethernet usually works out of the box. For Wi-Fi (installer only; the installed system has Wi-Fi disabled):
 
    ```bash
    nmtui
@@ -49,7 +51,7 @@ below reference the flake; a local path works too (see the note at the end).
    nix --experimental-features "nix-command flakes" run \
      github:nix-community/disko/latest -- \
      --mode destroy,format,mount \
-     --flake github:hh9dj/homelab#homelab \
+     --flake github:hh9dj/homelabV2#homelab \
      --argstr device /dev/nvme0n1
    ```
 
@@ -57,7 +59,7 @@ below reference the flake; a local path works too (see the note at the end).
 
    ```bash
    nixos-install \
-     --flake github:hh9dj/homelab#homelab \
+     --flake github:hh9dj/homelabV2#homelab \
      --root /mnt \
      --no-channel-copy \
      --no-root-password
@@ -81,8 +83,20 @@ below reference the flake; a local path works too (see the note at the end).
 
 - SSH is key-only. The authorized key is set in `configuration.nix`.
 - Automatic upgrades and weekly garbage collection are enabled. `system.autoUpgrade`
-  pulls `github:hh9dj/homelab#homelab`; edit `configuration.nix` if you fork.
-- Apply changes from the repo:
+  pulls `github:hh9dj/homelabV2#homelab`; edit `configuration.nix` if you fork.
+- Update the flake lock (inside the dev shell, loaded by direnv):
+
+  ```bash
+  just update
+  ```
+
+- Deploy from your workstation over SSH:
+
+  ```bash
+  just deploy
+  ```
+
+- Apply changes on the server itself:
 
   ```bash
   sudo nixos-rebuild switch --flake .#homelab
