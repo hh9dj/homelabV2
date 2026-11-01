@@ -59,6 +59,8 @@
     };
     tailscale = {
       enable = true;
+      openFirewall = true;
+      useRoutingFeatures = "client";
     };
   };
 
@@ -66,8 +68,8 @@
 
   networking = {
     hostName = "homelab";
-    # Without NetworkManager, the default DHCP client configures Ethernet.
     networkmanager.enable = false;
+    firewall.interfaces.tailscale0.allowedTCPPorts = [ 22 ];
   };
 
   time.timeZone = "Europe/Paris";
